@@ -1,0 +1,8 @@
+# 运行结果和真实数据不进仓库
+out/
+data/
+*.zip
+config/event.json
+__pycache__/
+*.pyc
+.DS_Store

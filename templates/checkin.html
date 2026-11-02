@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>__TITLE__ · 签到</title>
+<style>
+/*__BASE_CSS__*/
+.wrap{max-width:640px}
+.top{display:flex;align-items:flex-start;gap:10px}
+.banner{margin:10px 0;padding:10px 12px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-size:14px}
+.banner.bad{background:var(--bad-bg);color:var(--bad)}
+.search{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0}
+.search input{font-size:17px;padding:13px 14px}
+.list{margin-top:6px}
+.item{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid var(--line);cursor:pointer;background:var(--card)}
+.item:first-child{border-radius:14px 14px 0 0}.item:last-child{border-radius:0 0 14px 14px;border-bottom:0}.item:only-child{border-radius:14px}
+.item:hover{background:var(--chip)}
+.item .nm{font-weight:600;font-size:16px}
+.item .meta{font-size:12px;color:var(--mute)}
+.item.new .nm{color:var(--acc)}
+.field{margin:12px 0}
+.field>.lbl{display:block;font-size:13px;color:var(--mute);margin-bottom:5px}
+.field.req>.lbl::after{content:' *';color:var(--bad)}
+.field.missing input,.field.missing textarea,.field.missing .seg{outline:2px solid var(--bad);outline-offset:1px;border-radius:10px}
+.field .was{font-size:12px;color:var(--warn);margin-top:3px}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:52px;padding:10px;border-radius:10px;border:1px solid var(--line2);background:var(--card);color:var(--text);font-size:15px}
+.seg button.on{background:var(--acc);border-color:var(--acc);color:var(--acc-ink);font-weight:600}
+.group{margin-top:18px;padding-top:6px;border-top:1px dashed var(--line2)}
+.group h3{font-size:13px;color:var(--mute);margin:8px 0 0;font-weight:600}
+.status{font-size:13px;color:var(--mute);margin:6px 0 14px}
+.status.ok{color:var(--ok)}
+.actions{position:sticky;bottom:0;background:var(--bg);padding:12px 0 calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;flex-direction:column}
+.actions .primary{padding:15px;font-size:17px;border-radius:12px}
+.err{color:var(--bad);font-size:14px}
+.textbtn{background:none;border:0;color:var(--mute);text-decoration:underline;padding:4px;font-size:14px}
+.textbtn.danger{color:var(--bad)}
+.done{display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 0}
+.tick{width:64px;height:64px;border-radius:50%;background:var(--ok);color:#fff;display:flex;align-items:center;justify-content:center}
+.tick svg{width:36px;height:36px}
+.qr img{width:min(280px,72vw);height:auto;border-radius:12px;background:#fff;padding:10px;margin:14px 0 6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section id="v-search">
+    <div class="top">
+      <div class="grow"><h1 id="title"></h1><p class="sub" id="srcInfo"></p></div>
+      <button class="btn" id="exportBtn" type="button" hidden>导出 CSV</button>
+    </div>
+    <div class="row" id="byRow" hidden style="margin-bottom:8px"><span class="muted" style="font-size:13px">发放人</span><input type="text" id="by" placeholder="你的名字（会记进记录）" style="max-width:220px"></div>
+    <div class="banner" id="banner" hidden></div>
+    <div class="stats" id="stats"></div>
+    <div class="search"><input type="search" id="q" placeholder="搜姓名 / 拼音 / 首字母 / 学号 / 邮箱 / 编号" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"></div>
+    <div class="row" id="filters"></div>
+    <div class="list card" id="list"></div>
+  </section>
+
+  <section id="v-detail" hidden>
+    <div class="row"><button class="btn" id="back" type="button">← 返回</button><span class="grow"></span><span class="tag" id="dTag"></span></div>
+    <h1 id="dName" style="margin-top:14px"></h1>
+    <div class="status" id="dStatus"></div>
+    <div id="form"></div>
+    <div class="actions">
+      <div class="err" id="saveErr" hidden></div>
+      <button class="btn pri primary" id="confirm" type="button"></button>
+      <div class="row" style="justify-content:space-between"><button class="textbtn" id="showQr" type="button" hidden>再看一次二维码</button><span id="undoWrap"></span></div>
+    </div>
+  </section>
+
+  <section id="v-done" hidden>
+    <div class="done">
+      <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+      <h2 id="doneTitle"></h2>
+      <div id="qrBox" class="qr" hidden><p class="muted" id="qrTitle"></p><img alt="二维码" src="__QR__"><p id="qrCap" style="margin:0;font-weight:600"></p><p class="muted" id="qrExp" style="margin:2px 0 0;font-size:13px"></p></div>
+      <div class="row" style="margin-top:18px;width:100%"><button class="btn pri grow primary" id="next" type="button" style="padding:14px">下一位</button><button class="btn" id="reEdit" type="button" style="padding:14px">返回修改</button></div>
+    </div>
+  </section>
+</div>
+<script>
+/*__BASE_JS__*/
+const CFG = /*__CONFIG__*/null;
+const D = /*__DATA__*/null;
+const C = CFG.checkin || {};
+const F = CFG.fields;
+const BACKEND = CFG._backend || 'claude';
+const VIEW_ONLY = !!CFG._viewOnly;
+const ITEM = C.item || '';
+const OK_LABEL = C.done_label || '已签到';
+const EDIT = (C.editable || ['name', 'id', 'email', 'adult', 'staff']).filter((f) => F[f]);
+const ONSITE = C.onsite_fields || [];
+const ALL = [...EDIT, ...ONSITE.map((f) => f.key)];
+const label = (f) => F[f]?.label || ONSITE.find((o) => o.key === f)?.label || f;
+const isBool = (f) => F[f]?.type === 'bool';
+const QR = (() => { const i = document.querySelector('#qrBox img'); return i && i.getAttribute('src').startsWith('data:') ? i.getAttribute('src') : ''; })();
+const SRC = Object.fromEntries((CFG.sources || []).map((s) => [s.key, s.label]));
+
+const S = { checks: new Map(), names: {}, uid: '', canWrite: false, isAdmin: false, phase: 'loading', err: '',
+  q: '', filter: 'all', view: 'search', cur: null, base: null, form: null, isNew: false, saving: false };
+const ROSTER = D.rows;
+const BY_K = new Map(ROSTER.map((r) => [r.k, r]));
+
+document.title = `${CFG.event.name} · ${C.title || '签到'}`;
+$('#title').textContent = `${CFG.event.emoji || ''} ${C.title || '签到'}`.trim();
+$('#srcInfo').textContent = `${CFG.event.name} · 名单 ${ROSTER.length} 人`;
+
+// ---------- 保存方式 ----------
+// claude：Claude Artifact 数据库（collection "checkins"，每人一个文档，key = k）
+// gas：Google Apps Script（google.script.run 调 Code.gs）
+// local：只存在这台设备
+const Store = {
+  claude: {
+    async init(onChange, onError) {
+      const db = await window.claude?.use?.('db');
+      if (!db) return false;
+      this.db = db;
+      const user = await window.claude.use('user');
+      if (user) { this.user = user; [S.uid, S.canWrite, S.isAdmin] = await Promise.all([user.id(), user.can('data.write'), user.canEdit()]); }
+      db.collection('checkins').limit(2000).onSnapshot((snap) => onChange(new Map(snap.docs.map((d) => [d.id, d.data()]))), onError);
+      return true;
+    },
+    async save(k, doc) {
+      const ref = this.db.collection('checkins').doc(k);
+      try { await ref.set(doc); } catch (e) { if (e?.code !== 'unavailable') throw e; await new Promise((r) => setTimeout(r, 700)); await ref.set(doc); }
+    },
+    async names(ids) { try { const p = await this.user?.profiles(ids.slice(0, 64)); return Object.fromEntries(ids.map((id) => [id, p?.[id]?.name || ''])); } catch (_) { return {}; } },
+  },
+  gas: {
+    call(fn, ...args) { return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args)); },
+    async init(onChange, onError) {
+      if (!window.google?.script?.run) return false;
+      S.canWrite = true; S.isAdmin = true;
+      try { S.uid = localStorage.getItem('checkin-by') || ''; } catch (_) { S.uid = ''; }
+      $('#byRow').hidden = false; $('#by').value = S.uid;
+      $('#by').addEventListener('input', (e) => { S.uid = e.target.value.trim(); try { localStorage.setItem('checkin-by', S.uid); } catch (_) {} });
+      const poll = async () => { try { onChange(new Map(Object.entries(await this.call('getChecks')))); } catch (e) { onError(e); } };
+      await poll(); setInterval(() => { if (document.visibilityState === 'visible' && !S.saving) poll(); }, 15000);
+      return true;
+    },
+    async save(k, doc) { const saved = await this.call('saveRecord', JSON.stringify(doc)); return saved && JSON.parse(saved); },
+    async names() { return {}; },
+  },
+  local: {
+    KEY: 'checkins:' + CFG.event.name,
+    async init(onChange) {
+      S.canWrite = true; S.isAdmin = true; S.uid = '本机';
+      let m = {}; try { m = JSON.parse(localStorage.getItem(this.KEY) || '{}'); } catch (_) {}
+      onChange(new Map(Object.entries(m))); this.onChange = onChange; return true;
+    },
+    async save(k, doc) {
+      let m = {}; try { m = JSON.parse(localStorage.getItem(this.KEY) || '{}'); } catch (_) {}
+      m[k] = doc; localStorage.setItem(this.KEY, JSON.stringify(m)); // 存不进去会抛错，页面会提示保存失败
+    },
+    async names() { return {}; },
+  },
+}[BACKEND];
+
+// ---------- 名单和搜索 ----------
+function people() {
+  const arr = ROSTER.map((r) => ({ k: r.k, base: r, ck: S.checks.get(r.k) }));
+  for (const [k, ck] of S.checks) if (!BY_K.has(k)) arr.push({ k, base: null, ck });
+  return arr;
+}
+const pName = (p) => p.ck?.current?.name || p.base?.name || '（未填姓名）';
+function results() {
+  return people().map((p) => ({ p, s: matchScore(S.q, [p.base?.name, p.base?.id, p.base?.email, p.ck?.current?.name, p.ck?.current?.id, p.ck?.current?.email, ...ONSITE.filter((o) => o.type === 'text').map((o) => p.ck?.current?.[o.key]), ...(p.base?.py || '').split(' ')], [p.base?.no, ...(p.base?.prev || [])].filter((x) => x != null)) }))
+    .filter(({ p, s }) => s < 9 && (S.filter === 'all' || (S.filter === 'done') === !!p.ck?.claimed))
+    .sort((a, b) => a.s - b.s || String(a.p.base?.sk || pName(a.p)).localeCompare(String(b.p.base?.sk || pName(b.p))))
+    .map(({ p }) => p);
+}
+const writable = () => S.phase === 'ready' && S.canWrite !== false && !VIEW_ONLY; // can() 返回 null = 没告知，交给写入时判断
+
+function renderBanner() {
+  let msg = '', bad = false;
+  if (VIEW_ONLY) msg = '这是只读名单，只能搜索和查看。';
+  else if (S.phase === 'nodb') msg = BACKEND === 'claude' ? '没有登录 claude.ai 或没有编辑权限：只能查看名单，看不到谁已经签到。' : '连不上保存后台，只能查看名单。';
+  else if (S.phase === 'error') { msg = S.err || '连接断了，请刷新页面。'; bad = true; }
+  else if (S.phase === 'ready' && S.canWrite === false) msg = '你只能查看，不能确认。请让页面所有者把你设为编辑者。';
+  const b = $('#banner'); b.hidden = !msg; b.textContent = msg; b.classList.toggle('bad', bad);
+}
+function renderSearch() {
+  renderBanner();
+  const all = people(), done = all.filter((p) => p.ck?.claimed).length;
+  $('#stats').replaceChildren(
+    h('div', { class: 'stat' }, h('b', { text: done }), h('span', { text: OK_LABEL })),
+    h('div', { class: 'stat' }, h('b', { text: all.length - done }), h('span', { text: '未' + (OK_LABEL.replace(/^已/, '')) })),
+    h('div', { class: 'stat' }, h('b', { text: all.filter((p) => !p.base).length }), h('span', { text: '现场新增' })));
+  $('#filters').replaceChildren(...[['all', '全部'], ['todo', '未' + OK_LABEL.replace(/^已/, '')], ['done', OK_LABEL]].map(([f, t]) =>
+    h('button', { class: 'chip' + (S.filter === f ? ' on' : ''), type: 'button', text: t, onclick: () => { S.filter = f; renderSearch(); } })));
+  const R = S.q || S.filter !== 'all' ? results() : results().slice(0, 300);
+  const L = $('#list'); L.replaceChildren();
+  for (const p of R.slice(0, 300)) {
+    const b = p.base, c = p.ck;
+    const tags = [];
+    if (c?.claimed) tags.push(h('span', { class: 'tag ok', text: `${OK_LABEL} ${fmtTime(c.claimedAt, CFG.event.timezone)}` }));
+    if ((c?.current?.adult ?? b?.adult) === false) tags.push(h('span', { class: 'tag bad', text: '未满18岁' }));
+    if (c?.current?.staff ?? b?.staff) tags.push(h('span', { class: 'tag', text: F.staff?.label || '工作人员' }));
+    if (!b) tags.push(h('span', { class: 'tag warn', text: '现场新增' }));
+    L.append(h('div', { class: 'item', role: 'button', tabindex: 0, onclick: () => openPerson(p.k), onkeydown: (e) => { if (e.key === 'Enter') openPerson(p.k); } },
+      h('div', { class: 'grow' }, h('div', { class: 'nm', text: pName(p) }),
+        h('div', { class: 'meta mono', text: [b ? `#${b.no}` : '', c?.current?.id ?? b?.id, b?.ticket, b && Object.keys(SRC).length > 1 ? SRC[b.src] : ''].filter(Boolean).join(' · ') })),
+      h('div', { class: 'row', style: 'gap:4px;justify-content:flex-end' }, ...tags)));
+  }
+  // 列表最后永远有一行：名单里没有的人现场新增
+  if (!VIEW_ONLY) L.append(h('div', { class: 'item new', role: 'button', tabindex: 0, onclick: openNew },
+    h('div', { class: 'grow' }, h('div', { class: 'nm', text: R.length ? '＋ 名单里没有？现场新增' : '未找到结果 · 现场新增' }), h('div', { class: 'meta', text: '填一张空白登记表，记作「现场新增（名单外）」' }))));
+}
+
+// ---------- 详情 / 表单 ----------
+function show(v) { for (const x of ['search', 'detail', 'done']) $('#v-' + x).hidden = x !== v; S.view = v; }
+function blankOnsite() { return Object.fromEntries(ONSITE.map((o) => [o.key, o.type === 'text' || o.type === 'textarea' ? '' : null])); }
+function openPerson(k) {
+  const base = BY_K.get(k) || null, ck = S.checks.get(k);
+  S.cur = k; S.base = base; S.isNew = false;
+  S.form = { ...(base ? Object.fromEntries(EDIT.map((f) => [f, base[f] ?? (isBool(f) ? null : '')])) : {}), ...blankOnsite(), ...(ck?.current || {}) };
+  show('detail'); renderDetail(); window.scrollTo(0, 0);
+}
+function openNew() {
+  const q = S.q.trim();
+  S.cur = 'm-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); S.base = null; S.isNew = true;
+  S.form = { ...Object.fromEntries(EDIT.map((f) => [f, isBool(f) ? (f === 'adult' ? true : false) : ''])), ...blankOnsite() };
+  if (/[一-鿿]/.test(q) || /^[a-z]+ [a-z]+$/i.test(q)) S.form.name = q; else if (q && EDIT.includes('id')) S.form.id = q;
+  show('detail'); renderDetail(); window.scrollTo(0, 0);
+}
+function inputFor(f, def) {
+  const type = def?.type || (isBool(f) ? 'bool' : 'text');
+  const v = S.form[f];
+  const set = (x) => { S.form[f] = x; renderDetail(true); };
+  if (type === 'bool') return h('div', { class: 'seg' }, ...[[true, '是'], [false, '否']].map(([x, t]) => h('button', { type: 'button', class: v === x ? 'on' : '', text: t, onclick: () => set(x) })));
+  if (type === 'choice') return h('div', { class: 'seg' }, ...def.options.map((x) => h('button', { type: 'button', class: v === x ? 'on' : '', text: x, onclick: () => set(x) })));
+  if (type === 'scale') { const o = []; for (let i = def.min ?? 1; i <= (def.max ?? 5); i++) o.push(i); return h('div', { class: 'seg' }, ...o.map((x) => h('button', { type: 'button', class: v === x ? 'on' : '', text: x, onclick: () => set(x) }))); }
+  const el = h(type === 'textarea' ? 'textarea' : 'input', { type: 'text', rows: 2, class: F[f]?.mono ? 'mono' : '', autocomplete: 'off', spellcheck: 'false', placeholder: def?.placeholder || '' });
+  el.value = v ?? '';
+  el.addEventListener('input', (e) => { S.form[f] = e.target.value; if (f === 'name') $('#dName').textContent = e.target.value || '现场新增'; $(`.field[data-f="${f}"]`)?.classList.remove('missing'); });
+  return el;
+}
+function renderDetail(keepFocus) {
+  const ck = S.checks.get(S.cur), base = S.base;
+  $('#dName').textContent = S.form.name || (S.isNew ? '现场新增' : '');
+  $('#dTag').textContent = base ? `#${base.no}${base.ticket ? ' · ' + base.ticket : ''}` : '现场新增（名单外）';
+  const st = $('#dStatus');
+  st.className = 'status' + (ck?.claimed ? ' ok' : '');
+  st.textContent = ck?.claimed ? `✓ ${OK_LABEL} · ${fmtTime(ck.claimedAt, CFG.event.timezone)}${S.names[ck.claimedBy] || (BACKEND !== 'claude' && ck.claimedBy) ? ' · ' + (S.names[ck.claimedBy] || ck.claimedBy) : ''}${ck.saves > 1 ? ` · 改过 ${ck.saves - 1} 次` : ''}` : (base ? '还没有' + OK_LABEL.replace(/^已/, '') : '名单里没有这个人，确认后会记作现场新增');
+  const active = document.activeElement?.closest?.('.field')?.dataset.f;
+  const form = $('#form'); form.replaceChildren();
+  const field = (f, def) => {
+    const orig = ck?.original?.[f] ?? base?.[f];
+    const changed = (base || ck?.original) && EDIT.includes(f) && orig != null && orig !== '' && String(orig) !== String(S.form[f] ?? '');
+    return h('div', { class: 'field' + (def?.required || (f === 'name' && S.isNew) ? ' req' : ''), 'data-f': f },
+      h('span', { class: 'lbl', text: label(f) }), inputFor(f, def), changed ? h('div', { class: 'was', text: `报名时：${fieldText(CFG, f, orig)}` }) : null);
+  };
+  EDIT.forEach((f) => form.append(field(f)));
+  if (ONSITE.length) form.append(h('div', { class: 'group' }, h('h3', { text: '现场登记' }), ...ONSITE.map((o) => field(o.key, o))));
+  if (keepFocus && active) $(`.field[data-f="${active}"] input, .field[data-f="${active}"] textarea`)?.focus();
+  $('#confirm').textContent = ck?.claimed ? '保存修改' : (C.confirm_label || '确认签到');
+  $('#confirm').disabled = !writable() || S.saving;
+  $('#showQr').hidden = !(ck?.claimed && (QR || C.after_confirm?.title));
+  $('#undoWrap').replaceChildren(ck?.claimed && writable() ? h('button', { class: 'textbtn', type: 'button', text: `撤销${OK_LABEL.replace(/^已/, '')}`, onclick: askUndo }) : '');
+  $('#saveErr').hidden = true;
+}
+
+// ---------- 保存 ----------
+function clean(form) { const v = {}; for (const f of ALL) v[f] = typeof form[f] === 'string' ? form[f].trim() : (form[f] ?? null); return v; }
+function diffOf(a, b) { const d = {}; for (const f of ALL) { const x = a ? (a[f] ?? null) : null, y = b[f] ?? null; if (x !== y && !((x === '' || x === null) && (y === '' || y === null))) d[f] = [x, y]; } return d; }
+function fail(msg) { const el = $('#saveErr'); el.textContent = msg; el.hidden = false; }
+function errText(e) {
+  return { invalid_argument: '保存失败：你没有写入权限。', quota_exceeded: '保存失败：数据库已满。', revoked: '保存失败：权限刚被收回，请刷新。' }[e?.code] || `保存失败：${e?.message || '网络不稳定'}，请再点一次。`;
+}
+async function confirmSave() {
+  if (S.saving || !writable()) return;
+  if (BACKEND === 'gas' && !S.uid) { fail('请先在页面顶部填写「发放人」。'); return; }
+  const values = clean(S.form);
+  const missing = [...(S.isNew ? ['name'] : []), ...ONSITE.filter((o) => o.required).map((o) => o.key)].filter((f) => values[f] == null || values[f] === '');
+  $$('.field').forEach((el) => el.classList.toggle('missing', missing.includes(el.dataset.f)));
+  if (missing.length) { fail(`请先填写：${missing.map(label).join('、')}`); $('.field.missing')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+  const k = S.cur, prev = S.checks.get(k), base = S.base, now = new Date().toISOString(), first = !prev?.claimed;
+  const original = prev ? prev.original ?? null : (base ? Object.fromEntries(EDIT.map((f) => [f, base[f] ?? null])) : null);
+  const changed = original ? EDIT.filter((f) => String(original[f] ?? '') !== String(values[f] ?? '')) : [];
+  const entry = { at: now, by: S.uid, action: first ? '确认' : '修改', diff: diffOf(prev?.current ?? (original ? { ...original, ...blankOnsite() } : null), values) };
+  const doc = { k, no: base?.no ?? null, src: base?.src ?? null, manual: !base, source: base ? '名单' : '现场新增（名单外）', ticket: base?.ticket ?? null,
+    original, current: values, changed, claimed: true, claimedAt: first ? now : prev.claimedAt, claimedBy: first ? S.uid : prev.claimedBy ?? '',
+    updatedAt: now, updatedBy: S.uid, saves: (prev?.saves || 0) + 1, history: [...(prev?.history || []), entry].slice(-50) };
+  S.saving = true; $('#confirm').disabled = true;
+  try {
+    await Store.save(k, doc);
+    S.checks.set(k, doc); S.isNew = false;
+    showDone(`${values.name || ''} · ${first ? OK_LABEL : '已保存修改'}`);
+  } catch (e) { fail(errText(e)); }
+  S.saving = false; $('#confirm').disabled = !writable();
+}
+function askUndo() {
+  $('#undoWrap').replaceChildren(h('span', { text: '确定撤销？ ' }), h('button', { class: 'textbtn danger', type: 'button', text: '撤销', onclick: doUndo }), h('button', { class: 'textbtn', type: 'button', text: '取消', onclick: () => renderDetail() }));
+}
+async function doUndo() {
+  const k = S.cur, prev = S.checks.get(k); if (!prev || S.saving) return;
+  const now = new Date().toISOString();
+  const doc = { ...prev, claimed: false, claimedAt: null, claimedBy: '', updatedAt: now, updatedBy: S.uid, history: [...(prev.history || []), { at: now, by: S.uid, action: '撤销', diff: {} }].slice(-50) };
+  S.saving = true;
+  try { await Store.save(k, doc); S.checks.set(k, doc); toast('已撤销'); } catch (e) { fail(errText(e)); }
+  S.saving = false; renderDetail();
+}
+function showDone(title) {
+  $('#doneTitle').textContent = title;
+  const a = C.after_confirm || {};
+  $('#qrBox').hidden = !QR;
+  $('#qrTitle').textContent = a.title || ''; $('#qrCap').textContent = a.caption || ''; $('#qrExp').textContent = a.expires ? `二维码有效期至 ${a.expires}` : '';
+  show('done'); $('#next').focus({ preventScroll: true });
+}
+function backToSearch(clear) { if (clear) { S.q = ''; $('#q').value = ''; } show('search'); renderSearch(); window.scrollTo(0, 0); $('#q').focus({ preventScroll: true }); }
+
+// ---------- 导出 ----------
+function exportCsv() {
+  const cols = ['编号', '来源', ...EDIT.flatMap((f) => [`${label(f)}(报名)`, label(f)]), ...ONSITE.map((o) => o.label), OK_LABEL, '时间', '确认人', '最后保存', '改过的信息', '现场新增', 'key'];
+  const lines = [cols];
+  for (const p of people().sort((a, b) => (a.base?.no ?? 1e9) - (b.base?.no ?? 1e9))) {
+    const o = p.ck?.original || (p.base ? Object.fromEntries(EDIT.map((f) => [f, p.base[f]])) : {}), c = p.ck?.current || {};
+    lines.push([p.base?.no ?? '', p.base ? SRC[p.base.src] || '' : '', ...EDIT.flatMap((f) => [fieldText(CFG, f, o[f]), p.ck ? fieldText(CFG, f, c[f]) : '']),
+      ...ONSITE.map((x) => c[x.key] ?? ''), p.ck?.claimed ? '是' : '否', fmtTime(p.ck?.claimedAt, CFG.event.timezone), S.names[p.ck?.claimedBy] || p.ck?.claimedBy || '',
+      fmtTime(p.ck?.updatedAt, CFG.event.timezone), (p.ck?.changed || []).map(label).join('、'), p.base ? '' : '是', p.k]);
+  }
+  saveFile(`${C.title || '签到'}记录_${stamp()}.csv`, toCsv(lines));
+}
+
+// ---------- 事件 ----------
+$('#q').addEventListener('input', (e) => { S.q = e.target.value; renderSearch(); });
+$('#q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } }); // 回车只收键盘，不自动打开某个人
+$('#back').addEventListener('click', () => backToSearch(false));
+$('#confirm').addEventListener('click', confirmSave);
+$('#showQr').addEventListener('click', () => showDone(`${S.form.name || ''} · ${C.after_confirm?.title || '二维码'}`));
+$('#next').addEventListener('click', () => backToSearch(true));
+$('#reEdit').addEventListener('click', () => openPerson(S.cur));
+$('#exportBtn').addEventListener('click', exportCsv);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !e.target.closest?.('input,textarea')) { if (S.view !== 'search') backToSearch(S.view === 'done'); } });
+let lock = null;
+async function keepAwake() { if (lock || document.visibilityState !== 'visible' || !navigator.wakeLock) return; try { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); } catch (_) {} }
+document.addEventListener('pointerdown', keepAwake, { once: true });
+document.addEventListener('visibilitychange', keepAwake);
+
+// ---------- 启动 ----------
+renderSearch();
+if (!VIEW_ONLY) (async () => {
+  const onChange = async (m) => {
+    S.checks = m; S.phase = 'ready';
+    const ids = [...new Set([...m.values()].flatMap((c) => [c.claimedBy, c.updatedBy]).filter((x) => x && !(x in S.names)))];
+    if (ids.length) { ids.forEach((id) => { S.names[id] = ''; }); Object.assign(S.names, await Store.names(ids)); }
+    if (S.view === 'search') renderSearch(); else if (S.view === 'detail' && !S.saving) renderDetail(true);
+    $('#exportBtn').hidden = !S.isAdmin;
+  };
+  const onError = (e) => { S.phase = 'error'; S.err = e?.code === 'revoked' ? '你的访问权限变了，请刷新页面。' : '和后台的连接断了，请刷新页面。'; renderBanner(); };
+  try { if (!(await Store.init(onChange, onError))) { S.phase = 'nodb'; renderSearch(); } }
+  catch (e) { onError(e); }
+})();
+</script>
+</body>
+</html>

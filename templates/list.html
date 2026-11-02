@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>报名名单</title>
+<style>
+/*__BASE_CSS__*/
+.flags .tag{margin:1px 3px 1px 0}
+td{white-space:nowrap}
+td.flags{white-space:normal;min-width:180px}
+td.nm{font-weight:600}
+.filters{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.filters .lbl{font-size:12px;color:var(--mute);min-width:64px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title"></h1>
+  <p class="sub" id="sub"></p>
+  <div class="stats" id="stats"></div>
+  <div class="card pad">
+    <div class="row">
+      <input type="search" id="q" class="grow" placeholder="搜姓名 / 拼音 / 首字母 / 学号 / 邮箱 / 编号" autocomplete="off" style="max-width:420px">
+      <span class="grow"></span>
+      <button class="btn" id="copyEmails" type="button">复制当前列表邮箱</button>
+      <button class="btn" id="export" type="button">导出 CSV</button>
+    </div>
+    <div class="filters" id="filters"></div>
+  </div>
+  <p class="sub" id="count" style="margin:12px 2px 8px"></p>
+  <div class="tablewrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+</div>
+<script>
+/*__BASE_JS__*/
+const CFG = /*__CONFIG__*/null;
+const D = /*__DATA__*/null;
+const ROWS = D.rows;
+const F = CFG.fields;
+const SRC = Object.fromEntries((CFG.sources || []).map((s) => [s.key, s.label]));
+const SRC_ORDER = (CFG.sources || []).map((s) => s.key);
+const multiSrc = new Set(ROWS.map((r) => r.src)).size > 1;
+const hasImgs = ROWS.some((r) => r.imgs);
+const present = (f) => ROWS.some((r) => r[f] !== undefined && r[f] !== null && r[f] !== '');
+const COLS = Object.keys(F).filter((f) => present(f) && !(f === 'staff' && !ROWS.some((r) => r.staff)));
+const BOOLS = COLS.filter((f) => F[f].type === 'bool');
+const S = { q: '', src: '', ticket: '', flagged: false, bools: {} };
+
+document.title = `${CFG.event.name} · 报名名单`;
+$('#title').textContent = `${CFG.event.emoji || ''} ${CFG.event.name} · 报名名单`.trim();
+$('#sub').textContent = (D.meta.sources || []).map((s) => `${s.label}：${s.submissions} 份提交 → ${s.people} 人${s.exported ? `，最后一份 ${fmtTime(s.exported, CFG.event.timezone)}` : ''}`).join('　') + `　（时间为 ${CFG.event.timezone}）`;
+
+function filtered() {
+  return ROWS.map((r) => ({ r, s: matchScore(S.q, [r.name, r.id, r.email, r.wechat, ...(r.py || '').split(' ')], r.subs || [r.no]) }))
+    .filter(({ r, s }) => s < 9
+      && (!S.src || r.src === S.src)
+      && (!S.ticket || r.ticket === S.ticket)
+      && (!S.flagged || (r.flags || []).length)
+      && Object.entries(S.bools).every(([f, v]) => v === '' || r[f] === (v === '1')))
+    .sort((a, b) => a.s - b.s || SRC_ORDER.indexOf(a.r.src) - SRC_ORDER.indexOf(b.r.src) || a.r.no - b.r.no)
+    .map(({ r }) => r);
+}
+function chipRow(label, opts, cur, set) {
+  return h('div', { class: 'row' }, h('span', { class: 'lbl', text: label }),
+    ...opts.map(([v, t]) => h('button', { class: 'chip' + (cur === v ? ' on' : ''), type: 'button', text: t, onclick: () => { set(cur === v && v !== '' ? '' : v); render(); } })));
+}
+function renderFilters() {
+  const f = $('#filters'); f.replaceChildren();
+  if (multiSrc) f.append(chipRow('来源', [['', '全部'], ...Object.entries(SRC)], S.src, (v) => { S.src = v; }));
+  const tickets = [...new Set(ROWS.map((r) => r.ticket).filter(Boolean))];
+  if (tickets.length > 1) f.append(chipRow(F.ticket?.label || '票种', [['', '全部'], ...tickets.map((t) => [t, t])], S.ticket, (v) => { S.ticket = v; }));
+  for (const b of BOOLS) f.append(chipRow(F[b].label, [['', '全部'], ['1', '是'], ['0', '否']], S.bools[b] ?? '', (v) => { S.bools[b] = v; }));
+  f.append(h('div', { class: 'row' }, h('span', { class: 'lbl', text: '标记' }),
+    h('button', { class: 'chip' + (S.flagged ? ' on' : ''), type: 'button', text: `只看需要注意的（${ROWS.filter((r) => (r.flags || []).length).length}）`, onclick: () => { S.flagged = !S.flagged; render(); } })));
+}
+function renderStats(list) {
+  const st = [['人数', list.length]];
+  if (ROWS.some((r) => r.staff)) st.push([F.staff?.label || '工作人员', list.filter((r) => r.staff).length]);
+  if (present('adult')) st.push(['未满 18 岁', list.filter((r) => r.adult === false).length]);
+  const tk = {}; list.forEach((r) => { if (r.ticket) tk[r.ticket] = (tk[r.ticket] || 0) + 1; });
+  Object.entries(tk).forEach(([t, n]) => st.push([`${F.ticket?.label || '票种'}·${t}`, n]));
+  BOOLS.filter((b) => !['adult', 'staff'].includes(b)).forEach((b) => st.push([F[b].label, list.filter((r) => r[b]).length]));
+  st.push(['有标记', list.filter((r) => (r.flags || []).length).length]);
+  $('#stats').replaceChildren(...st.map(([l, n]) => h('div', { class: 'stat' }, h('b', { text: n }), h('span', { text: l }))));
+}
+function render() {
+  renderFilters();
+  const list = filtered();
+  renderStats(list);
+  $('#count').textContent = `当前显示 ${list.length} / ${ROWS.length} 人`;
+  const head = ['#', ...(multiSrc ? ['来源'] : []), ...COLS.map((f) => F[f].label), ...(hasImgs ? ['凭证'] : []), '标记', '提交时间'];
+  $('#thead').replaceChildren(h('tr', null, ...head.map((t) => h('th', { text: t }))));
+  const frag = document.createDocumentFragment();
+  for (const r of list) {
+    const tr = h('tr');
+    tr.append(h('td', { class: 'muted mono', text: r.no + ((r.prev || []).length ? ` (旧 #${r.prev.join(', #')})` : '') }));
+    if (multiSrc) tr.append(h('td', null, h('span', { class: 'tag', text: SRC[r.src] || r.src })));
+    for (const f of COLS) {
+      const v = fieldText(CFG, f, r[f]);
+      tr.append(h('td', { class: (f === 'name' ? 'nm ' : '') + (F[f].mono ? 'mono' : ''), text: v }));
+    }
+    if (hasImgs) {
+      const imgs = (r.imgs || []).filter((i) => i.src);
+      const items = imgs.map((i, n) => ({ src: i.src, cap: `#${i.sub} ${r.name} · 第 ${n + 1} 张` }));
+      tr.append(h('td', null, imgs.length ? h('div', { class: 'thumbs' }, ...imgs.map((i, n) => h('img', { src: i.src, alt: '凭证', loading: 'lazy', onclick: () => Viewer.open(items, n) }))) : h('span', { class: 'tag bad', text: '无' })));
+    }
+    tr.append(h('td', { class: 'flags' }, ...(r.flags || []).map((t) => h('span', { class: 'tag warn', text: t }))));
+    tr.append(h('td', { class: 'muted', style: 'white-space:nowrap', text: fmtTime(r.at, CFG.event.timezone) }));
+    frag.append(tr);
+  }
+  $('#tbody').replaceChildren(frag);
+}
+$('#q').addEventListener('input', (e) => { S.q = e.target.value; render(); });
+$('#copyEmails').addEventListener('click', async () => {
+  const em = [...new Set(filtered().map((r) => r.email).filter(Boolean))];
+  try { await navigator.clipboard.writeText(em.join('; ')); toast(`已复制 ${em.length} 个邮箱`); }
+  catch (_) { prompt('复制下面的邮箱：', em.join('; ')); }
+});
+$('#export').addEventListener('click', () => {
+  const list = filtered();
+  const lines = [['编号', '来源', ...COLS.map((f) => F[f].label), '凭证数', '标记', '提交时间']];
+  for (const r of list) lines.push([r.no, SRC[r.src] || r.src, ...COLS.map((f) => fieldText(CFG, f, r[f])), (r.imgs || []).length, (r.flags || []).join('；'), fmtTime(r.at, CFG.event.timezone)]);
+  saveFile(`报名名单_${stamp()}.csv`, toCsv(lines));
+});
+render();
+</script>
+</body>
+</html>

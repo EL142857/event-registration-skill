@@ -1,0 +1,116 @@
+{
+  "_说明": "复制成 event.json 后按你的活动修改。所有脚本和页面都只读这个文件，不需要改代码。字段含义见 references/config.md。",
+
+  "event": {
+    "name": "示例秋季派对 2026",
+    "emoji": "🎉",
+    "timezone": "Europe/London",
+    "currency": "£"
+  },
+
+  "fields": {
+    "name":     { "label": "姓名" },
+    "id":       { "label": "学号", "mono": true },
+    "email":    { "label": "邮箱", "mono": true },
+    "school":   { "label": "学校" },
+    "year":     { "label": "年级" },
+    "adult":    { "label": "已满18岁", "type": "bool" },
+    "ticket":   { "label": "票种" },
+    "staff":    { "label": "工作人员", "type": "bool" },
+    "bus_to":   { "label": "去程大巴", "type": "bool" },
+    "bus_back": { "label": "返程大巴", "type": "bool" },
+    "wechat":   { "label": "微信号", "mono": true },
+    "allergy":  { "label": "过敏源" },
+    "note":     { "label": "其它说明" }
+  },
+
+  "sources": [
+    {
+      "key": "main",
+      "label": "主报名表",
+      "file": "examples/sample_main.csv",
+      "format": "tencent",
+      "export_timezone": "Asia/Shanghai",
+      "submission_no": "编号",
+      "submitted_at": { "column": "结束答题时间", "format": "%d-%b-%Y %H:%M:%S" },
+      "columns": {
+        "name": "1.您的姓名",
+        "school": "2.您的学校",
+        "id": "3.您的学号",
+        "year": "4.您的年级",
+        "email": "5.您的邮箱",
+        "adult": "6.您是否已满18岁",
+        "bus_to": "7.是否需要乘坐去程大巴",
+        "bus_back": "8.是否需要乘坐返程大巴",
+        "ticket": "9.您的购票种类",
+        "allergy": "11.您的食物过敏源",
+        "note": "12.其它说明"
+      },
+      "attachments": { "column_prefix": "10.", "file_pattern": "^{no}_q10_" }
+    },
+    {
+      "key": "late",
+      "label": "补录表",
+      "file": "examples/sample_late.csv",
+      "format": "csv",
+      "export_timezone": "Europe/London",
+      "submission_no": "序号",
+      "submitted_at": { "column": "提交时间", "format": "%Y/%m/%d %H:%M:%S" },
+      "columns": {
+        "name": "姓名",
+        "email": "邮箱",
+        "wechat": "微信号",
+        "adult": "是否满18岁",
+        "ticket": "身份"
+      }
+    }
+  ],
+
+  "dedupe_by": ["id", "email"],
+  "ticket_aliases": { "早鸟票（截至10月1日）": "早鸟票", "普通票（10月2日起）": "普通票" },
+  "staff_tickets": ["工作人员", "摊主", "志愿者"],
+
+  "checks": [
+    { "type": "under_18" },
+    { "type": "id_is_email" },
+    { "type": "email_domain_typo", "expected": ["example.ac.uk"] },
+    { "type": "differs", "fields": ["bus_to", "bus_back"], "message": "只坐单程大巴" },
+    { "type": "missing", "fields": ["email"] },
+    { "type": "duplicate_image" }
+  ],
+
+  "payment": {
+    "prices": { "早鸟票": 60, "普通票": 70, "工作人员": 0, "摊主": 0, "志愿者": 0 },
+    "addons": [ { "label": "大巴", "price": 20, "when_any": ["bus_to", "bus_back"] } ],
+    "coupon_discount": 5,
+    "always_review_tickets": ["工作人员"],
+    "payee": "示例收款人"
+  },
+
+  "master": {
+    "default_columns": ["name", "id", "email", "adult", "ticket", "staff", "bus_to", "bus_back", "wechat", "_src", "checked_in"]
+  },
+
+  "checkin": {
+    "title": "入场签到",
+    "item": "手环",
+    "confirm_label": "确认领取手环",
+    "done_label": "已领取",
+    "editable": ["name", "id", "email", "adult", "staff"],
+    "onsite_fields": [
+      { "key": "wechat",  "label": "微信号",   "type": "text",   "required": true },
+      { "key": "costume", "label": "特殊装扮", "type": "choice", "options": ["有", "没有"], "required": true },
+      { "key": "walk",    "label": "走秀意向", "type": "scale",  "min": 1, "max": 5, "required": false },
+      { "key": "remark",  "label": "备注",     "type": "textarea" }
+    ],
+    "after_confirm": {
+      "title": "请扫码加入活动群",
+      "qr_image": "",
+      "caption": "示例活动群",
+      "expires": ""
+    },
+    "google": { "sheet_id": "", "records_tab": "签到记录", "log_tab": "签到操作日志" }
+  },
+
+  "draw": { "title": "现场抽奖", "emoji": "🎁", "remove_winner": true }
+}

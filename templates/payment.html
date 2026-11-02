@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>缴费核对</title>
+<style>
+/*__BASE_CSS__*/
+td{white-space:nowrap}
+td.nm{font-weight:600}
+td.note{white-space:normal;min-width:220px;max-width:420px}
+.items{font-size:12px;color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title"></h1>
+  <p class="sub" id="sub"></p>
+  <div class="stats" id="stats"></div>
+  <div class="card pad">
+    <div class="row">
+      <input type="search" id="q" placeholder="搜姓名 / 拼音 / 学号 / 编号" autocomplete="off" style="max-width:360px">
+      <span class="grow"></span>
+      <button class="btn" id="export" type="button">导出 CSV</button>
+    </div>
+    <div class="row" id="chips" style="margin-top:10px"></div>
+  </div>
+  <p class="sub" id="count" style="margin:12px 2px 8px"></p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>#</th><th>姓名</th><th class="hide-sm">学号</th><th>票种</th><th>应付</th><th>实付</th><th>结论</th><th>凭证</th><th>备注 / 标记</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table></div>
+</div>
+<script>
+/*__BASE_JS__*/
+const CFG = /*__CONFIG__*/null;
+const D = /*__DATA__*/null;
+const ROWS = D.rows, CUR = D.meta.currency || '';
+const TONE = { ok: 'ok', free: 'ok', coupon: 'warn', check: 'bad', pending: '' };
+const ORDER = ['check', 'pending', 'coupon', 'ok', 'free'];
+const S = { q: '', st: '' };
+document.title = `${CFG.event.name} · 缴费核对`;
+$('#title').textContent = `${CFG.event.emoji || ''} ${CFG.event.name} · 缴费核对`.trim();
+$('#sub').textContent = `应付 = 票价 + 附加项（价格表见配置）${D.meta.payee ? '　收款人：' + D.meta.payee : ''}　「待看图」= 还没人看过凭证图`;
+
+function list() {
+  return ROWS.map((r) => ({ r, s: matchScore(S.q, [r.name, r.id, ...(r.py || '').split(' ')], r.subs) }))
+    .filter(({ r, s }) => s < 9 && (!S.st || r.status === S.st))
+    .sort((a, b) => a.s - b.s || ORDER.indexOf(a.r.status) - ORDER.indexOf(b.r.status) || a.r.no - b.r.no).map(({ r }) => r);
+}
+function render() {
+  const cnt = {}; ROWS.forEach((r) => { cnt[r.status] = (cnt[r.status] || 0) + 1; });
+  const label = Object.fromEntries(ROWS.map((r) => [r.status, r.statusLabel]));
+  $('#stats').replaceChildren(h('div', { class: 'stat' }, h('b', { text: ROWS.length }), h('span', { text: '总人数' })),
+    ...ORDER.filter((k) => cnt[k]).map((k) => h('div', { class: 'stat' }, h('b', { text: cnt[k] }), h('span', { text: label[k] }))));
+  $('#chips').replaceChildren(h('button', { class: 'chip' + (S.st ? '' : ' on'), type: 'button', text: '全部', onclick: () => { S.st = ''; render(); } }),
+    ...ORDER.filter((k) => cnt[k]).map((k) => h('button', { class: 'chip' + (S.st === k ? ' on' : ''), type: 'button', text: `${label[k]} ${cnt[k]}`, onclick: () => { S.st = k; render(); } })));
+  const L = list();
+  $('#count').textContent = `当前显示 ${L.length} / ${ROWS.length} 人`;
+  $('#tbody').replaceChildren(...L.map((r) => {
+    const imgs = (r.imgs || []).filter((i) => i.src);
+    const items = imgs.map((i, n) => ({ src: i.src, cap: `#${i.sub} ${r.name} · 应付 ${CUR}${r.due}` }));
+    return h('tr', null,
+      h('td', { class: 'muted mono', text: r.subs.length > 1 ? `${r.no}（共 ${r.subs.length} 次）` : r.no }),
+      h('td', { class: 'nm', text: r.name }),
+      h('td', { class: 'mono hide-sm', text: r.id || '' }),
+      h('td', null, r.ticket || '', h('div', { class: 'items', text: r.items.slice(1).join(' + ') })),
+      h('td', { class: 'mono', text: `${CUR}${r.due}` }),
+      h('td', { class: 'mono', text: r.paid || '' }),
+      h('td', null, h('span', { class: 'tag ' + (TONE[r.status] || ''), text: r.statusLabel })),
+      h('td', null, imgs.length ? h('div', { class: 'thumbs' }, ...imgs.map((i, n) => h('img', { src: i.src, alt: '凭证', loading: 'lazy', onclick: () => Viewer.open(items, n) }))) : h('span', { class: 'muted', text: '—' })),
+      h('td', { class: 'note' }, r.note || '', ...(r.flags || []).map((t) => h('div', null, h('span', { class: 'tag', text: t })))));
+  }));
+}
+$('#q').addEventListener('input', (e) => { S.q = e.target.value; render(); });
+$('#export').addEventListener('click', () => {
+  const lines = [['编号', '姓名', '学号', '票种', '明细', '应付', '实付', '结论', '备注', '标记']];
+  list().forEach((r) => lines.push([r.no, r.name, r.id, r.ticket, r.items.join(' + '), `${CUR}${r.due}`, r.paid, r.statusLabel, r.note, (r.flags || []).join('；')]));
+  saveFile(`缴费核对_${stamp()}.csv`, toCsv(lines));
+});
+render();
+</script>
+</body>
+</html>

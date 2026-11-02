@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>报名总表</title>
+<style>
+/*__BASE_CSS__*/
+.cols{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px}
+.cols label{display:flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+.filters{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.filters .lbl{font-size:12px;color:var(--mute);min-width:64px}
+details{margin:12px 0}
+summary{cursor:pointer;font-weight:600}
+ol.q{margin:8px 0 0;padding-left:22px}
+ol.q li{margin:4px 0}
+td{white-space:nowrap}
+td.wrap{white-space:normal;min-width:200px;max-width:380px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title"></h1>
+  <p class="sub" id="sub"></p>
+  <details id="qbox" class="card pad" hidden><summary id="qsum"></summary><ol class="q" id="qlist"></ol></details>
+  <div class="stats" id="stats"></div>
+  <div class="card pad">
+    <div class="row">
+      <input type="search" id="q" placeholder="搜姓名 / 拼音 / 学号 / 邮箱" autocomplete="off" style="max-width:360px">
+      <span class="grow"></span>
+      <button class="btn" id="allCols" type="button">全选列</button>
+      <button class="btn" id="defCols" type="button">默认列</button>
+      <button class="btn pri" id="export" type="button">导出 CSV（当前列和筛选）</button>
+    </div>
+    <div class="cols" id="cols"></div>
+    <div class="filters" id="filters"></div>
+  </div>
+  <p class="sub" id="count" style="margin:12px 2px 8px"></p>
+  <div class="tablewrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+</div>
+<script>
+/*__BASE_JS__*/
+const CFG = /*__CONFIG__*/null;
+const D = /*__DATA__*/null;
+const ROWS = D.rows, COLS = D.columns;
+const COL = Object.fromEntries(COLS.map((c) => [c.key, c]));
+const LS = 'master-cols:' + CFG.event.name;
+const DEF = (CFG.master?.default_columns || COLS.map((c) => c.key)).filter((k) => COL[k]);
+let shown;
+try { shown = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (_) { shown = null; }
+shown = new Set((shown || ['no', ...DEF]).filter((k) => COL[k]));
+const S = { q: '', f: {} };
+const val = (r, k) => (COL[k]?.type === 'bool' || typeof r[k] === 'boolean') ? yn(r[k]) : (r[k] ?? '');
+// 可以筛选的列：取值不多的列（是/否、票种、来源……）
+const CHOICE = new Set([...(CFG.master?.filter_columns || ['ticket', '_src', 'checked_in', 'pay_status']),
+  ...(CFG.checkin?.onsite_fields || []).filter((o) => o.type === 'choice' || o.type === 'bool').map((o) => o.key)]);
+const FILTERABLE = COLS.filter((c) => c.type === 'bool' || CHOICE.has(c.key)).map((c) => {
+  const vals = [...new Set(ROWS.map((r) => val(r, c.key)).filter((v) => v !== ''))]
+    .sort((a, b) => (a === '是' ? -1 : b === '是' ? 1 : 0) || String(a).localeCompare(String(b), 'zh'));
+  return vals.length > 1 && vals.length <= 12 ? [c.key, vals] : null;
+}).filter(Boolean);
+
+document.title = `${CFG.event.name} · 报名总表`;
+$('#title').textContent = `${CFG.event.emoji || ''} ${CFG.event.name} · 报名总表`.trim();
+$('#sub').textContent = `共 ${D.meta.count} 人，一人一行。来源：` + Object.entries(D.meta.sources || {}).filter(([, n]) => n).map(([k, n]) => `${k} ${n}`).join('、') + '。勾选的列会记在这台设备上。';
+if ((D.questions || []).length) {
+  $('#qbox').hidden = false;
+  $('#qsum').textContent = `需要主办方确认的问题（${D.questions.length}）`;
+  $('#qlist').replaceChildren(...D.questions.map((q) => h('li', { text: q.text })));
+}
+function saveCols() { try { localStorage.setItem(LS, JSON.stringify([...shown])); } catch (_) { /* optional */ } }
+function list() {
+  return ROWS.map((r) => ({ r, s: matchScore(S.q, [r.name, r.id, r.email, r.wechat, ...(r.py || '').split(' ')], []) }))
+    .filter(({ r, s }) => s < 9 && Object.entries(S.f).every(([k, v]) => !v || val(r, k) === v))
+    .sort((a, b) => a.s - b.s || a.r.no - b.r.no).map(({ r }) => r);
+}
+function render() {
+  $('#cols').replaceChildren(...COLS.map((c) => h('label', null,
+    h('input', { type: 'checkbox', checked: shown.has(c.key), onchange: (e) => { e.target.checked ? shown.add(c.key) : shown.delete(c.key); saveCols(); render(); } }), c.label)));
+  $('#filters').replaceChildren(...FILTERABLE.map(([k, vals]) => h('div', { class: 'row' }, h('span', { class: 'lbl', text: COL[k].label }),
+    ...['', ...vals].map((v) => h('button', { class: 'chip' + ((S.f[k] || '') === v ? ' on' : ''), type: 'button', text: v || '全部', onclick: () => { S.f[k] = v; render(); } })))));
+  const L = list();
+  const st = [['人数', L.length]];
+  FILTERABLE.forEach(([k, vals]) => { if (vals.includes('是')) st.push([COL[k].label, L.filter((r) => val(r, k) === '是').length]); });
+  $('#stats').replaceChildren(...st.map(([l, n]) => h('div', { class: 'stat' }, h('b', { text: n }), h('span', { text: l }))));
+  $('#count').textContent = `当前显示 ${L.length} / ${ROWS.length} 人，${shown.size} 列`;
+  const cols = COLS.filter((c) => shown.has(c.key));
+  $('#thead').replaceChildren(h('tr', null, ...cols.map((c) => h('th', { text: c.label }))));
+  const frag = document.createDocumentFragment();
+  L.forEach((r) => frag.append(h('tr', null, ...cols.map((c) => h('td', { class: ['notes', 'flags', 'subs', 'pay_note'].includes(c.key) || String(val(r, c.key)).length > 40 ? 'wrap' : (c.key === 'id' || c.key === 'email' ? 'mono' : ''), text: val(r, c.key) })))));
+  $('#tbody').replaceChildren(frag);
+}
+$('#q').addEventListener('input', (e) => { S.q = e.target.value; render(); });
+$('#allCols').addEventListener('click', () => { shown = new Set(COLS.map((c) => c.key)); saveCols(); render(); });
+$('#defCols').addEventListener('click', () => { shown = new Set(['no', ...DEF]); saveCols(); render(); });
+$('#export').addEventListener('click', () => {
+  const cols = COLS.filter((c) => shown.has(c.key));
+  const lines = [cols.map((c) => c.label), ...list().map((r) => cols.map((c) => val(r, c.key)))];
+  saveFile(`报名总表_${stamp()}.csv`, toCsv(lines));
+});
+render();
+</script>
+</body>
+</html>

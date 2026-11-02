@@ -1,0 +1,283 @@
+[
+ {
+  "k": "ex101",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:00:00Z",
+  "current": {
+   "name": "Alex Sample",
+   "id": "ex101",
+   "email": "ex101@example.ac.uk",
+   "adult": true,
+   "staff": false,
+   "wechat": "wx_demo_0",
+   "costume": "没有",
+   "walk": 1,
+   "remark": ""
+  },
+  "original": {
+   "name": "Alex Sample",
+   "id": "ex101",
+   "email": "ex101@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex102",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:03:00Z",
+  "current": {
+   "name": "示例朱小美",
+   "id": "ex102",
+   "email": "ex102@example.ac.uk",
+   "adult": true,
+   "staff": false,
+   "wechat": "wx_demo_1",
+   "costume": "有",
+   "walk": 2,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例朱小美",
+   "id": "ex102",
+   "email": "ex102@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex103",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:06:00Z",
+  "current": {
+   "name": "示例吕四",
+   "id": "ex103",
+   "email": "ex103@example.ac.uk",
+   "adult": true,
+   "staff": true,
+   "wechat": "wx_demo_2",
+   "costume": "没有",
+   "walk": 3,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例吕四",
+   "id": "ex103",
+   "email": "ex103@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex104",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:09:00Z",
+  "current": {
+   "name": "示例魏八",
+   "id": "ex104",
+   "email": "ex104@example.ac.uk",
+   "adult": true,
+   "staff": false,
+   "wechat": "wx_demo_3",
+   "costume": "有",
+   "walk": 4,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例魏八",
+   "id": "ex104",
+   "email": "ex104@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex105",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:12:00Z",
+  "current": {
+   "name": "示例魏小明",
+   "id": "ex105",
+   "email": "new.address@example.com",
+   "adult": true,
+   "staff": false,
+   "wechat": "wx_demo_4",
+   "costume": "没有",
+   "walk": 5,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例魏小明",
+   "id": "ex105",
+   "email": "new.address@example.com"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex106",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:15:00Z",
+  "current": {
+   "name": "示例严小刚",
+   "id": "ex106",
+   "email": "ex106@example.ac.uk",
+   "adult": true,
+   "staff": true,
+   "wechat": "wx_demo_5",
+   "costume": "有",
+   "walk": 1,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例严小刚",
+   "id": "ex106",
+   "email": "ex106@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex107",
+  "claimed": false,
+  "claimedAt": "2026-10-31T18:18:00Z",
+  "current": {
+   "name": "示例曹小红",
+   "id": "ex107",
+   "email": "ex107@example.ac.uk",
+   "adult": true,
+   "staff": false,
+   "wechat": "wx_demo_6",
+   "costume": "没有",
+   "walk": 2,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例曹小红",
+   "id": "ex107",
+   "email": "ex107@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex108",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:21:00Z",
+  "current": {
+   "name": "Sam Example",
+   "id": "ex108",
+   "email": "ex108@example.ac.uk",
+   "adult": true,
+   "staff": false,
+   "wechat": "wx_demo_7",
+   "costume": "有",
+   "walk": 3,
+   "remark": ""
+  },
+  "original": {
+   "name": "Sam Example",
+   "id": "ex108",
+   "email": "ex108@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex109",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:24:00Z",
+  "current": {
+   "name": "示例何三",
+   "id": "ex109",
+   "email": "ex109@example.ac.uk",
+   "adult": true,
+   "staff": true,
+   "wechat": "wx_demo_8",
+   "costume": "没有",
+   "walk": 4,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例何三",
+   "id": "ex109",
+   "email": "ex109@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex110",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:27:00Z",
+  "current": {
+   "name": "示例李甲",
+   "id": "ex110",
+   "email": "ex110@example.ac.uk",
+   "adult": false,
+   "staff": false,
+   "wechat": "wx_demo_9",
+   "costume": "有",
+   "walk": 5,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例李甲",
+   "id": "ex110",
+   "email": "ex110@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex111",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:30:00Z",
+  "current": {
+   "name": "示例华四",
+   "id": "ex111",
+   "email": "ex111@example.ac.uk",
+   "adult": true,
+   "staff": false,
+   "wechat": "wx_demo_10",
+   "costume": "没有",
+   "walk": 1,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例华四",
+   "id": "ex111",
+   "email": "ex111@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "ex112",
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:33:00Z",
+  "current": {
+   "name": "示例韩一",
+   "id": "ex112",
+   "email": "ex112@example.ac.uk",
+   "adult": true,
+   "staff": false,
+   "wechat": "wx_demo_11",
+   "costume": "有",
+   "walk": 2,
+   "remark": ""
+  },
+  "original": {
+   "name": "示例韩一",
+   "id": "ex112",
+   "email": "ex112@example.ac.uk"
+  },
+  "manual": false
+ },
+ {
+  "k": "m-demo1",
+  "manual": true,
+  "claimed": true,
+  "claimedAt": "2026-10-31T18:50:00Z",
+  "current": {
+   "name": "示例现场新增",
+   "id": "",
+   "email": "walkin@example.com",
+   "adult": true,
+   "staff": false,
+   "wechat": "wx_walkin",
+   "costume": "没有",
+   "walk": 3,
+   "remark": "现场买票"
+  }
+ }
+]

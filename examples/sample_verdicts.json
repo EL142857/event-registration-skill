@@ -1,0 +1,92 @@
+{
+ "ex101": {
+  "status": "ok",
+  "paid": "£80",
+  "note": ""
+ },
+ "ex103": {
+  "status": "ok",
+  "paid": "£60",
+  "note": ""
+ },
+ "ex104": {
+  "status": "ok",
+  "paid": "£90",
+  "note": ""
+ },
+ "ex105": {
+  "status": "ok",
+  "paid": "£80",
+  "note": ""
+ },
+ "ex107": {
+  "status": "ok",
+  "paid": "£60",
+  "note": ""
+ },
+ "ex108": {
+  "status": "check",
+  "paid": "£40",
+  "note": "应付 £60，只看到 £40，差 £20"
+ },
+ "ex109": {
+  "status": "ok",
+  "paid": "£60",
+  "note": ""
+ },
+ "ex111": {
+  "status": "ok",
+  "paid": "£60",
+  "note": ""
+ },
+ "ex112": {
+  "status": "ok",
+  "paid": "£90",
+  "note": ""
+ },
+ "ex113": {
+  "status": "check",
+  "paid": "£80（未确认）",
+  "note": "截图是转账前的确认页，还没点 Confirm，证明不了已付款"
+ },
+ "ex115": {
+  "status": "ok",
+  "paid": "£80",
+  "note": ""
+ },
+ "ex116": {
+  "status": "ok",
+  "paid": "£80",
+  "note": ""
+ },
+ "ex117": {
+  "status": "ok",
+  "paid": "£80",
+  "note": ""
+ },
+ "ex119": {
+  "status": "ok",
+  "paid": "£90",
+  "note": ""
+ },
+ "ex120": {
+  "status": "ok",
+  "paid": "£90",
+  "note": ""
+ },
+ "ex123": {
+  "status": "ok",
+  "paid": "£90",
+  "note": ""
+ },
+ "ex124": {
+  "status": "ok",
+  "paid": "£90",
+  "note": ""
+ },
+ "ex125": {
+  "status": "ok",
+  "paid": "£90",
+  "note": ""
+ }
+}
