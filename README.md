@@ -1,83 +1,96 @@
 # event-registration-skill
 
-**活动报名 · 数据整理 · 名单 · 签到 · 抽奖 —— 一套给 Claude 用的一键工具（Claude Skill）**
+**English** | [中文](README.zh-CN.md)
 
-办过一次活动就知道：问卷导出一堆 `A.是`、同一个人填三遍、学号填成邮箱、付款截图对不上、几张表要合成一张、现场签到手忙脚乱……
-这个 skill 把这些活全部做成了「改配置 + 一条命令」，从一次 100+ 人的真实活动里打磨出来，换任何活动只需要改一个 `event.json`。
+**Event registration · data cleanup · rosters · check-in · lucky draw — a one-command toolkit packaged as a Claude Skill**
 
-> English: A Claude Skill for event registration workflows — clean form exports (Tencent Wenjuan / Google Forms / any CSV), dedupe & flag issues, review payment screenshots, merge multiple sources into one master list, and generate single-file pages for the roster, payment check, master table, on-site check-in (Claude Artifact or no-login Google Apps Script, plus an Excel backup) and a lucky-draw wheel. Config-driven; no code changes per event.
+Anyone who has run an event knows the pain: form exports full of `A.Yes`, the same person submitting three times, student IDs typed as email addresses, payment screenshots that don't add up, several spreadsheets that need to become one, and a chaotic check-in desk on the night.
+This skill turns all of that into "edit one config file, run one command". It was built and refined on a real 100+ person event, and moving to a new event only means editing `event.json` — no code changes.
 
-## 能做什么
+> The scripts, pages and docs are currently in Chinese (the UI text and messages). The config keys, commands and code are language-neutral, so the toolkit works for any event; labels such as field names are set in `event.json`.
 
-| | 功能 | 产出 |
+## What it does
+
+| | Feature | Output |
 |---|---|---|
-| 📝 | 报名表设计：题目清单、开头文案、导出注意事项 | `references/form-design.md` |
-| 🧹 | 清洗问卷导出：字段映射、去 `A.` 前缀、是/否转换、时区换算、按学号/邮箱去重保留最新、自动标记问题 | `people.json` |
-| 🖼️ | 附件处理：问卷附件 zip 自动对应到人、压缩、发现「不同人同一张图」 | `proof/*.jpg` |
-| 💷 | 缴费核对：按配置算应付（票价 + 大巴等附加项），看图下结论，一人一行 | `payment.json` + 页面 |
-| 🔗 | 多来源合并：多张报名表 + 补录 + 现场签到 → 一人一行总表，冲突列成问题清单 | `master.json` + `questions.md` |
-| 📋 | 报名名单页：筛选、拼音搜索、复制邮箱、凭证大图翻页 | `list` 页面 |
-| 🎟️ | 现场签到 / 发手环页：拼音搜索、改信息留痕、现场新增、必填项、确认后弹群二维码、撤销、导出 | `checkin` 页面 |
-| ☁️ | 免登录签到：同一个页面的 Google Apps Script 版，记录写进 Google 表格 | `Code.gs` + `Index.html` |
-| 📊 | 签到 Excel 备份：断网时直接在表格里填，带下拉框 | `.xlsx` |
-| 🎰 | 抽奖轮盘：点名加入奖池、转盘抽取、不在场重抽 | `draw` 页面 |
+| 📝 | Registration form design: recommended questions, intro copy, export tips | `references/form-design.md` |
+| 🧹 | Clean form exports (Tencent Wenjuan / Google Forms / any CSV or xlsx): column mapping, strip `A.` option prefixes, yes/no → boolean, time-zone conversion, dedupe by ID or email keeping the latest submission, automatic issue flags | `people.json` |
+| 🖼️ | Attachments: match the form's attachment zip to each person, compress images, detect the same screenshot uploaded by different people | `proof/*.jpg` |
+| 💷 | Payment check: amount due from config (ticket + add-ons such as a bus), verdicts after reviewing each screenshot, one row per person | `payment.json` + page |
+| 🔗 | Multi-source merge: several forms + late sign-ups + on-site check-ins → one row per person; conflicts listed as questions for the organizers | `master.json` + `questions.md` |
+| 📋 | Roster page: filters, pinyin search, copy emails, full-size proof viewer with prev/next | `list` page |
+| 🎟️ | On-site check-in / wristband page: pinyin search, edits keep the original values, walk-ins, required fields, group QR code after confirming, undo, CSV export | `checkin` page |
+| ☁️ | No-login check-in: the same page as a Google Apps Script web app, records written to a Google Sheet | `Code.gs` + `Index.html` |
+| 📊 | Excel check-in backup for when the network fails, with dropdowns | `.xlsx` |
+| 🎰 | Lucky-draw wheel: tap names into the pool, spin, re-draw if the winner isn't there | `draw` page |
 
-## 截图（虚构示例数据）
+## Screenshots (fictional sample data)
 
-| 报名名单 | 缴费核对 |
+| Roster | Payment check |
 |---|---|
 | ![](docs/list.png) | ![](docs/payment.png) |
-| **报名总表** | **签到（手机）** |
+| **Master list** | **Check-in (phone)** |
 | ![](docs/master.png) | ![](docs/checkin.png) |
 
-## 安装
+## Install
 
-**作为 Claude Code skill**
+**As a Claude Code skill**
 ```bash
 git clone https://github.com/EL142857/event-registration-skill ~/.claude/skills/event-registration
 pip install -r ~/.claude/skills/event-registration/requirements.txt
 ```
-之后直接对 Claude 说「帮我整理这份报名表导出」「做一个签到页」，它会按 `SKILL.md` 的流程来。
+Then just ask Claude things like "clean up this registration export" or "make a check-in page", and it follows the workflow in `SKILL.md`.
 
-**在 claude.ai 上用**：把仓库打包成 zip，在 设置 → Capabilities → Skills 上传。
+**On claude.ai**: zip the repository and upload it under Settings → Capabilities → Skills.
 
-**不用 Claude，直接跑脚本**也完全可以（纯 Python，标准库 + 三个可选依赖）。
+**Without Claude**: the scripts run fine on their own (plain Python, standard library plus three optional packages).
 
-## 快速试一下
+## Try it
 
 ```bash
-bash scripts/run_example.sh     # 生成虚构数据，跑完整条流程
-open out/名单.html out/签到.html # 或者用浏览器打开 out/ 里的任意页面
+bash scripts/run_example.sh     # generates fictional data and runs the whole pipeline
+open out/名单.html out/签到.html # or open any page in out/ in a browser
 ```
 
-## 用在自己的活动上
+## Use it for your own event
 
 ```bash
-cp config/event.example.json config/event.json   # 改活动名、列名、价格、签到字段
+cp config/event.example.json config/event.json   # event name, column names, prices, check-in fields
 python3 scripts/normalize.py config/event.json out/people.json
-python3 scripts/proofs.py    config/event.json out/people.json 附件.zip
+python3 scripts/proofs.py    config/event.json out/people.json attachments.zip
 python3 scripts/payment.py   config/event.json out/people.json out/verdicts.json out/payment.json
 python3 scripts/merge.py     config/event.json out/people.json out/master.json --payment out/payment.json
-python3 scripts/render.py list    config/event.json out/people.json  out/名单.html --embed-images
-python3 scripts/render.py checkin config/event.json out/people.json  out/签到.html --qr 群二维码.png
-python3 scripts/render.py draw    config/event.json out/master.json  out/抽奖.html
-```
-配置说明见 [`references/config.md`](references/config.md)。
-
-## 目录
-
-```
-SKILL.md                 Claude 读的说明（流程、规则、发布方法）
-config/                  配置示例
-scripts/                 normalize / proofs / payment / merge / render / checkin_xlsx / build_gas / make_sample
-templates/               页面模板（单文件 html，自动适配深色模式和手机）+ Apps Script 后台
-references/              报名表设计、配置、凭证核对、发布、Apps Script、隐私
-examples/                虚构示例数据（make_sample.py 生成）
+python3 scripts/render.py list    config/event.json out/people.json  out/roster.html --embed-images
+python3 scripts/render.py checkin config/event.json out/people.json  out/checkin.html --qr group-qr.png
+python3 scripts/render.py draw    config/event.json out/master.json  out/draw.html
 ```
 
-## 隐私
+| Step | Script | What it does |
+|---|---|---|
+| 1 | `normalize.py` | Reads every source in the config, maps columns, dedupes within each source, adds flags (under 18, ID typed as email, email domain typo, one-way bus only, resubmitted…) |
+| 2 | `proofs.py` | Links attachment files (`<no>_q10_...` in Tencent exports) to people, resizes to 1600 px JPEG, flags shared images |
+| 3 | `payment.py` | Computes amount due; merges `verdicts.json` (`ok` / `coupon` / `check` / `free`); writes `verdicts.todo.json` listing who still needs a screenshot review |
+| 4 | `merge.py` | Merges sources by ID → email; same-name-only matches become questions, never auto-merged; applies `resolutions.json` answers; joins check-in records |
+| 5 | `render.py` | Builds a single-file HTML page: `list`, `payment`, `master`, `checkin` (backends: Claude Artifact db, Google Apps Script, or local), `draw` |
+| 6 | `checkin_xlsx.py` | Excel backup with dropdowns and blank rows for walk-ins |
+| 7 | `build_gas.py` | Google Apps Script files plus step-by-step deployment notes |
 
-仓库里没有任何真实个人信息；示例数据全部是脚本生成的虚构内容。`.gitignore` 已排除 `out/`、`data/`、`*.zip` 和 `config/event.json`，请不要把真实报名数据提交进来。详见 [`references/privacy.md`](references/privacy.md)。
+See [`references/config.md`](references/config.md) for every config option.
+
+## Layout
+
+```
+SKILL.md        Instructions Claude reads (workflow, rules, publishing)
+config/         Example config
+scripts/        normalize / proofs / payment / merge / render / checkin_xlsx / build_gas / make_sample
+templates/      Single-file HTML pages (dark mode and phone friendly) + Apps Script backend
+references/     Form design, config, payment review, publishing, Apps Script, privacy
+examples/       Fictional sample data (generated by make_sample.py)
+```
+
+## Privacy
+
+There is no real personal data in this repository; all sample data is fictional and generated by a script. `.gitignore` excludes `out/`, `data/`, `*.zip` and `config/event.json` — please never commit real registration data. See [`references/privacy.md`](references/privacy.md).
 
 ## License
 
